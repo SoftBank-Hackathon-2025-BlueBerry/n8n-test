@@ -21,6 +21,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Inspect OIDC claims
+        env:
+          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${{ env.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
+          ACTIONS_ID_TOKEN_REQUEST_URL: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL }}
+        run: |
+          resp=$(curl -s -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.google.com")
+          token=$(echo "$resp" | jq -r .value)
+          payload=$(echo "$token" | cut -d. -f2 | base64 -d 2>/dev/null)
+          echo "$payload" | jq '{repository, repository_owner, actor, iss}'
+
       # OIDC로 GCP 인증(키 없이)
       - name: Auth to Google Cloud (Workload Identity Federation)
         uses: google-github-actions/auth@v2
